@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Delivery</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes checkmark {
+      0% { transform: scale(0) rotate(0deg); opacity: 0; }
+      50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+      100% { transform: scale(1) rotate(360deg); opacity: 1; }
+    }
+    
+    .checkmark-animation {
+      animation: checkmark 0.8s ease-out forwards;
+    }
+    
+    /* 1) 3D Parallax Tilt Hover on Food Cards */
+    .food-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      overflow: hidden;
+      position: relative;
+      transform-style: preserve-3d;
+      perspective: 1000px;
+    }
+    
+    .food-card:hover {
+      transform: translateY(-8px) rotateX(5deg) rotateY(5deg) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+    
+    .food-card .emoji-container {
+      transition: transform 0.4s ease;
+      transform-style: preserve-3d;
+    }
+    
+    .food-card:hover .emoji-container {
+      transform: translateZ(30px) scale(1.2) rotate(8deg);
+    }
+    
+    /* 19) Selected Item Highlight Glow */
+    .food-card.selected {
+      animation: glowPulse 1.5s infinite;
+      border: 3px solid;
+    }
+    
+    @keyframes glowPulse {
+      0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 107, 53, 0.5), 0 0 20px rgba(255, 107, 53, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 20px rgba(255, 107, 53, 0.8), 0 0 30px rgba(255, 107, 53, 0.5);
+      }
+    }
+    
+    /* Page Transitions */
+    .page {
+      display: none;
+      animation: pageSlideIn 0.4s ease-out;
+    }
+    
+    .page.active {
+      display: block;
+    }
+    
+    @keyframes pageSlideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
+    /* 2) Floating Food Items in Background */
+    .floating-food {
+      position: absolute;
+      font-size: 3rem;
+      opacity: 0.15;
+      pointer-events: none;
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-30px) rotate(10deg);
+      }
+    }
+    
+    .floating-food:nth-child(1) { top: 10%; left: 5%; animation-delay: 0s; }
+    .floating-food:nth-child(2) { top: 20%; right: 10%; animation-delay: 1s; animation-duration: 7s; }
+    .floating-food:nth-child(3) { top: 60%; left: 15%; animation-delay: 2s; animation-duration: 8s; }
+    .floating-food:nth-child(4) { top: 70%; right: 20%; animation-delay: 1.5s; }
+    .floating-food:nth-child(5) { top: 40%; left: 80%; animation-delay: 3s; animation-duration: 9s; }
+    
+    /* Skeleton Loader */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: 8px;
+    }
+    
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .skeleton-card {
+      height: 280px;
+      margin-bottom: 1.5rem;
+    }
+    
+    /* 3) Delivery Boy Scooter Animation */
+    .delivery-scooter {
+      position: fixed;
+      bottom: 20px;
+      font-size: 3rem;
+      animation: rideScooter 15s linear infinite;
+      z-index: 100;
+    }
+    
+    @keyframes rideScooter {
+      0% {
+        left: -100px;
+        transform: scaleX(1);
+      }
+      48% {
+        left: calc(100% + 50px);
+        transform: scaleX(1);
+      }
+      50% {
+        left: calc(100% + 50px);
+        transform: scaleX(-1);
+      }
+      98% {
+        left: -100px;
+        transform: scaleX(-1);
+      }
+      100% {
+        left: -100px;
+        transform: scaleX(1);
+      }
+    }
+    
+    /* 4) Chat Assistant Bubble */
+    .chat-bubble {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.8rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      animation: bubbleBounce 2s ease-in-out infinite;
+      z-index: 1000;
+    }
+    
+    @keyframes bubbleBounce {
+      0%, 100% {
+        transform: translateY(0) scale(1);
+      }
+      50% {
+        transform: translateY(-10px) scale(1.05);
+      }
+    }
+    
+    .chat-bubble:hover {
+      animation: none;
+      transform: scale(1.1);
+    }
+    
+    /* 6) Notification Bell Shake */
+    .notification-bell {
+      position: fixed;
+      top: 20px;
+      right: 100px;
+      font-size: 2rem;
+      cursor: pointer;
+      z-index: 1000;
+    }
+    
+    .notification-bell.shake {
+      animation: bellShake 0.5s ease-in-out;
+    }
+    
+    @keyframes bellShake {
+      0%, 100% { transform: rotate(0deg); }
+      10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+      20%, 40%, 60%, 80% { transform: rotate(10deg); }
+    }
+    
+    /* Cart Badge Bump Animation */
+    @keyframes badgeBump {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+    }
+    
+    .badge-bump {
+      animation: badgeBump 0.3s ease-out;
+    }
+    
+    /* 5) Star Rating Fill Animation */
+    .star-rating {
+      display: inline-flex;
+      gap: 4px;
+      cursor: pointer;
+    }
+    
+    .star {
+      font-size: 1.5rem;
+      transition: all 0.2s ease;
+      display: inline-block;
+    }
+    
+    .star.filled {
+      animation: starFill 0.3s ease-out forwards;
+    }
+    
+    @keyframes starFill {
+      0% {
+        transform: scale(0) rotate(0deg);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.3) rotate(180deg);
+      }
+      100% {
+        transform: scale(1) rotate(360deg);
+        opacity: 1;
+      }
+    }
+    
+    /* 7) Offer Card 3D Flip Animation */
+    .offer-card-container {
+      perspective: 1000px;
+      height: 200px;
+    }
+    
+    .offer-card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+      cursor: pointer;
+    }
+    
+    .offer-card.flipped {
+      transform: rotateY(180deg);
+    }
+    
+    .offer-front, .offer-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .offer-back {
+      transform: rotateY(180deg);
+    }
+    
+    /* Add to Cart Flying Animation */
+    @keyframes flyToCart {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: translate(var(--tx), var(--ty)) scale(0.5);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(var(--tx), var(--ty)) scale(0.2);
+        opacity: 0;
+      }
+    }
+    
+    .flying-emoji {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      font-size: 3rem;
+      animation: flyToCart 0.8s ease-in-out forwards;
+    }
+    
+    /* Toast Notification Slide */
+    @keyframes toastSlideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes toastSlideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+    
+    .toast-notification {
+      animation: toastSlideIn 0.3s ease-out;
+    }
+    
+    .toast-notification.hiding {
+      animation: toastSlideOut 0.3s ease-out forwards;
+    }
+    
+    /* Sticky Header Animation */
+    .navbar-hidden {
+      transform: translateY(-100%);
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    .navbar-visible {
+      transform: translateY(0);
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    /* Order Progress Timeline */
+    .progress-step {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    
+    .progress-step::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      right: -50%;
+      height: 3px;
+      background: #e0e0e0;
+      z-index: 0;
+    }
+    
+    .progress-step:last-child::before {
+      display: none;
+    }
+    
+    .progress-step.completed::before {
+      background: #4caf50;
+      animation: progressLine 0.5s ease-out;
+    }
+    
+    @keyframes progressLine {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+    
+    .progress-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s ease;
+    }
+    
+    .progress-step.completed .progress-icon {
+      background: #4caf50;
+      transform: scale(1.1);
+      box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2);
+    }
+    
+    .progress-step.active .progress-icon {
+      background: #ff6b35;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(255, 107, 53, 0);
+      }
+    }
+    
+    /* Cart Drawer Slide Animation */
+    .cart-drawer {
+      transform: translateX(100%);
+      transition: transform 0.3s ease-out;
+    }
+    
+    .cart-drawer.open {
+      transform: translateX(0);
+    }
+    
+    .cart-backdrop {
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
+      pointer-events: none;
+    }
+    
+    .cart-backdrop.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    /* Confetti Animation */
+    .confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+    }
+    
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #f0f;
+      animation: confetti-fall linear forwards;
+    }
+    
+    @keyframes confetti-fall {
+      to {
+        transform: translateY(100%) rotate(720deg);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    .bounce-animation {
+      animation: bounce 0.6s ease-in-out 3;
+    }
+    
+    /* Button Hover Effects */
+    .btn-hover {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-hover::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn-hover:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    /* Favorite Heart Animation */
+    .favorite-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      z-index: 10;
+    }
+    
+    .favorite-btn:hover {
+      transform: scale(1.2);
+    }
+    
+    .favorite-btn.liked {
+      animation: heartBeat 0.3s ease-in-out;
+    }
+    
+    @keyframes heartBeat {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.3); }
+      50% { transform: scale(1.1); }
+      75% { transform: scale(1.25); }
+    }
+    
+    /* 12) Heart Burst Particles */
+    .heart-particle {
+      position: absolute;
+      pointer-events: none;
+      font-size: 0.8rem;
+      animation: burstParticle 0.8s ease-out forwards;
+    }
+    
+    @keyframes burstParticle {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+      }
+    }
+    
+    /* 20) Delivery ETA Countdown Pulse */
+    .eta-countdown {
+      animation: etaPulse 2s ease-in-out infinite;
+      font-weight: bold;
+    }
+    
+    @keyframes etaPulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+      }
+    }
+    
+    /* 14) Scroll Fade-In Animation */
+    .scroll-reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    
+    .scroll-reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* 15) Frosted Glass Blur */
+    .frosted-glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full overflow-auto">
+  <div id="app" class="w-full min-h-full" style="font-family: 'Inter', system-ui, -apple-system, sans-serif;"><!-- Navigation -->
+   <nav id="navbar" class="sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div class="flex justify-between items-center h-16">
+      <div class="flex items-center cursor-pointer" onclick="showPage('home')"><span class="text-2xl mr-2">🍔</span> <span id="site-name" class="font-bold text-xl"></span>
+      </div>
+      <div class="flex items-center space-x-6"><button onclick="showPage('home')" class="hover:opacity-80 transition-opacity font-medium">Menu</button> <button id="cart-btn" onclick="viewCart()" class="relative"> <span class="text-2xl">🛒</span> <span id="cart-count" class="absolute -top-2 -right-2 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">0</span> </button>
+      </div>
+     </div>
+    </div>
+   </nav><!-- HOME PAGE -->
+   <div id="home-page" class="page active"><!-- Hero Section -->
+    <section id="hero" class="py-20 px-4" style="position: relative; overflow: hidden;"><!-- Floating Food Items Background -->
+     <div class="floating-food">
+      🍕
+     </div>
+     <div class="floating-food">
+      🍔
+     </div>
+     <div class="floating-food">
+      🍟
+     </div>
+     <div class="floating-food">
+      🌮
+     </div>
+     <div class="floating-food">
+      🍣
+     </div>
+     <div class="max-w-4xl mx-auto text-center" style="position: relative; z-index: 2;">
+      <div class="text-6xl mb-4">
+       🍽️
+      </div>
+      <h1 id="hero-title" class="font-bold mb-4"></h1>
+      <p id="hero-subtitle" class="mb-8 opacity-90"></p><button id="browse-btn" onclick="document.getElementById('menu').scrollIntoView({behavior: 'smooth'})" class="font-semibold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"> Browse Menu 🚀 </button>
+     </div>
+    </section><!-- Menu Section with 50 Items -->
+    <section id="menu" class="py-16 px-4 scroll-reveal">
+     <div class="max-w-7xl mx-auto">
+      <h2 id="menu-title" class="text-center font-bold mb-8"></h2><!-- Special Offer Card (Flippable) -->
+      <div class="max-w-md mx-auto mb-12 offer-card-container">
+       <div class="offer-card" id="offer-card" onclick="this.classList.toggle('flipped')">
+        <div class="offer-front" id="offer-front">
+         <div class="text-center">
+          <div class="text-4xl mb-2">
+           🎁
+          </div>
+          <h3 class="text-2xl font-bold mb-2">Special Offer!</h3>
+          <p class="text-lg">Click to reveal 🔄</p>
+         </div>
+        </div>
+        <div class="offer-back" id="offer-back">
+         <div class="text-center">
+          <div class="text-5xl mb-2">
+           🎉
+          </div>
+          <h3 class="text-2xl font-bold mb-2">30% OFF</h3>
+          <p class="text-lg">On orders above $50</p>
+          <p class="text-sm mt-2">Use code: FEAST30</p>
+         </div>
+        </div>
+       </div>
+      </div>
+      <div id="menu-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"><!-- Skeleton loaders shown initially -->
+       <div class="skeleton skeleton-card"></div>
+       <div class="skeleton skeleton-card"></div>
+       <div class="skeleton skeleton-card"></div>
+       <div class="skeleton skeleton-card"></div>
+       <div class="skeleton skeleton-card"></div>
+       <div class="skeleton skeleton-card"></div>
+       <div class="skeleton skeleton-card"></div>
+       <div class="skeleton skeleton-card"></div>
+      </div>
+     </div>
+    </section>
+   </div><!-- Delivery Scooter Animation -->
+   <div class="delivery-scooter">
+    🛵
+   </div><!-- Chat Assistant Bubble -->
+   <div class="chat-bubble" id="chat-bubble" onclick="showNotification('Hi! How can I help you today? 👋')">
+    💬
+  <!-- Notification Bell -->
+<div class="notification-bell" id="notification-bell" 
+     onclick="showNotification('New offer: 30% OFF on orders above $50! 🎉'); playBellSound()">
+    🔔
+</div>
+
+<!-- Audio element for bell sound -->
+<audio id="bell-sound" src="Sound Effect by <a href="https://pixabay.com/users/u_byub5wd934-32145216/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=129698">u_byub5wd934</a> from <a href="https://pixabay.com/sound-effects//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=129698">Pixabay</a> (1)" preload="auto"></audio>
+
+<script>
+function showNotification(message) {
+    alert(message); // Or use your custom notification UI
+}
+
+function playBellSound() {
+    const bell = document.getElementById('bell-sound');
+    bell.currentTime = 0; // Reset to start
+    bell.play();
+}
+</script>
+
+   </div><!-- CHECKOUT PAGE -->
+   <div id="checkout-page" class="page scroll-reveal">
+    <div class="max-w-4xl mx-auto px-4 py-12">
+     <h1 id="checkout-title" class="font-bold mb-8 text-center"></h1>
+     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><!-- Payment Form -->
+      <div id="payment-form-card" class="rounded-lg shadow-lg p-8">
+       <h2 class="font-bold mb-6 flex items-center"><span class="text-2xl mr-2">💳</span> <span>Payment Information</span></h2>
+       <form id="payment-form" onsubmit="handlePayment(event)">
+        <div class="mb-4"><label for="card-name" class="block font-medium mb-2">Cardholder Name</label> <input type="text" id="card-name" required class="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-500" placeholder="John Doe">
+        </div>
+        <div class="mb-4"><label for="card-number" class="block font-medium mb-2">Card Number (16 digits)</label> <input type="text" id="card-number" required maxlength="19" class="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-500" placeholder="1234 5678 9012 3456" oninput="formatCardNumber(this)">
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+         <div><label for="expiry-date" class="block font-medium mb-2">Expiry Date</label> <input type="text" id="expiry-date" required maxlength="5" class="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-500" placeholder="MM/YY" oninput="formatExpiryDate(this)">
+         </div>
+         <div><label for="cvv" class="block font-medium mb-2">CVV</label> <input type="text" id="cvv" required maxlength="3" class="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-500" placeholder="123" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+         </div>
+        </div>
+        <div class="mb-4"><label for="billing-address" class="block font-medium mb-2">Billing Address</label> <input type="text" id="billing-address" required class="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-500" placeholder="123 Main Street">
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+         <div><label for="city" class="block font-medium mb-2">City</label> <input type="text" id="city" required class="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-500" placeholder="New York">
+         </div>
+         <div><label for="zipcode" class="block font-medium mb-2">ZIP Code</label> <input type="text" id="zipcode" required class="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-blue-500" placeholder="10001">
+         </div>
+        </div><button type="submit" id="place-order-btn" class="w-full py-4 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105"> </button>
+       </form>
+       <div class="mt-6 p-4 rounded-lg" style="background-color: #fef3c7;">
+        <p class="text-sm">💡 <strong>Suggestion:</strong> Your card number should be exactly 16 digits. We accept Visa, Mastercard, and American Express.</p>
+       </div>
+      </div><!-- Order Summary -->
+      <div id="order-summary-card" class="rounded-lg shadow-lg p-8">
+       <h2 class="font-bold mb-6 flex items-center"><span class="text-2xl mr-2">📋</span> <span>Order Summary</span></h2>
+       <div id="checkout-items" class="space-y-4 mb-6"><!-- Cart items will be displayed here -->
+       </div>
+       <div class="border-t pt-4">
+        <div class="flex justify-between items-center mb-2"><span class="font-medium">Subtotal:</span> <span id="checkout-subtotal" class="font-bold">$0.00</span>
+        </div>
+        <div class="flex justify-between items-center mb-2"><span class="font-medium">Delivery Fee:</span> <span class="font-bold">$5.00</span>
+        </div>
+        <div class="flex justify-between items-center text-xl border-t pt-2"><span class="font-bold">Total:</span> <span id="checkout-total" class="font-bold">$0.00</span>
+        </div>
+       </div><button onclick="showPage('home')" class="w-full mt-4 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity" style="background-color: #e9ecef; color: #2d3436;"> ← Continue Shopping </button>
+      </div>
+     </div>
+    </div>
+   </div><!-- THANK YOU PAGE -->
+   <div id="thankyou-page" class="page"><!-- Confetti Container -->
+    <div id="confetti-container" class="confetti-container"></div>
+    <main class="w-full min-h-screen flex items-center justify-center px-4 py-8">
+     <div class="max-w-2xl w-full text-center">
+      <div class="mb-8 flex justify-center">
+       <div id="success-circle" class="w-32 h-32 rounded-full flex items-center justify-center checkmark-animation shadow-2xl">
+        <svg class="w-16 h-16" fill="none" stroke="white" stroke-width="3" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+        </svg>
+       </div>
+      </div>
+      <div class="bounce-animation">
+       <div class="text-6xl mb-4">
+        🎉
+       </div>
+       <h1 id="thankyou-title" class="font-bold mb-4"></h1>
+      </div>
+      <p id="thankyou-message" class="mb-8 opacity-90"></p>
+      <div id="thankyou-card" class="rounded-2xl shadow-xl p-8 mb-8">
+       <div class="flex items-center justify-center mb-6"><span class="text-5xl">🍕</span>
+       </div>
+       <div class="space-y-4">
+        <div>
+         <p class="font-semibold mb-2">Order Confirmed</p>
+         <p id="thankyou-order-number" class="font-mono opacity-75"></p>
+        </div><!-- Order Progress Timeline -->
+        <div class="border-t pt-6">
+         <p class="font-semibold mb-4 text-center">Order Progress</p>
+         <div id="progress-timeline" class="flex items-start justify-between mb-4">
+          <div class="progress-step completed">
+           <div class="progress-icon"><span style="color: white;">✓</span>
+           </div>
+           <p class="text-xs mt-2 text-center">Accepted</p>
+          </div>
+          <div class="progress-step active">
+           <div class="progress-icon"><span style="color: white;">👨‍🍳</span>
+           </div>
+           <p class="text-xs mt-2 text-center">Preparing</p>
+          </div>
+          <div class="progress-step">
+           <div class="progress-icon"><span>🚚</span>
+           </div>
+           <p class="text-xs mt-2 text-center">On the Way</p>
+          </div>
+          <div class="progress-step">
+           <div class="progress-icon"><span>🏠</span>
+           </div>
+           <p class="text-xs mt-2 text-center">Delivered</p>
+          </div>
+         </div>
+        </div>
+        <div class="border-t pt-4">
+         <div class="flex items-center justify-center space-x-2 mb-2"><span class="text-2xl">⏱️</span>
+          <p class="font-medium">Estimated delivery: <span class="eta-countdown" id="eta-countdown">25</span> minutes</p>
+         </div>
+        </div>
+        <div class="border-t pt-4">
+         <div class="flex justify-between items-center text-xl"><span class="font-bold">Total Paid:</span> <span id="thankyou-total" class="font-bold"></span>
+         </div>
+        </div>
+       </div>
+      </div><button onclick="showPage('home'); resetOrder();" class="font-semibold py-4 px-10 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 mb-8"> Order Again 🔄 </button>
+      <div class="mt-12 space-y-4">
+       <div class="flex items-center justify-center space-x-6">
+        <div class="flex items-center space-x-2"><span class="text-xl">📧</span> <span class="text-sm opacity-75">Confirmation sent to your email</span>
+        </div>
+        <div class="flex items-center space-x-2"><span class="text-xl">📱</span> <span class="text-sm opacity-75">Track your order via SMS</span>
+        </div>
+       </div>
+      </div>
+     </div>
+    </main>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      background_color: "#f8f9fa",
+      navbar_color: "#ffffff",
+      hero_color: "#ff6b35",
+      card_color: "#ffffff",
+      primary_action_color: "#ff6b35",
+      text_color: "#2d3436",
+      font_family: "Inter",
+      font_size: 16,
+      site_name: "QuickBite",
+      hero_title: "Delicious Food Delivered Fast",
+      hero_subtitle: "Order from 50+ amazing dishes and enjoy fresh meals in minutes",
+      menu_title: "Our Menu - 50 Delicious Items",
+      checkout_title: "Secure Checkout",
+      payment_button: "Place Order 🎉",
+      thankyou_title: "Congratulations! Order Confirmed!",
+      thankyou_message: "Your delicious meal is on its way"
+    };
+
+    const menuItems = [
+      { id: 1, name: "Classic Burger", price: 12.99, emoji: "🍔" },
+      { id: 2, name: "Cheeseburger", price: 13.99, emoji: "🍔" },
+      { id: 3, name: "Margherita Pizza", price: 15.99, emoji: "🍕" },
+      { id: 4, name: "Pepperoni Pizza", price: 17.99, emoji: "🍕" },
+      { id: 5, name: "Caesar Salad", price: 9.99, emoji: "🥗" },
+      { id: 6, name: "Greek Salad", price: 10.99, emoji: "🥗" },
+      { id: 7, name: "Sushi Platter", price: 24.99, emoji: "🍣" },
+      { id: 8, name: "Salmon Sushi", price: 22.99, emoji: "🍣" },
+      { id: 9, name: "Pasta Carbonara", price: 14.99, emoji: "🍝" },
+      { id: 10, name: "Spaghetti Bolognese", price: 13.99, emoji: "🍝" },
+      { id: 11, name: "Beef Tacos", price: 11.99, emoji: "🌮" },
+      { id: 12, name: "Chicken Tacos", price: 10.99, emoji: "🌮" },
+      { id: 13, name: "Hot Dog", price: 8.99, emoji: "🌭" },
+      { id: 14, name: "Gourmet Hot Dog", price: 10.99, emoji: "🌭" },
+      { id: 15, name: "French Fries", price: 4.99, emoji: "🍟" },
+      { id: 16, name: "Cheese Fries", price: 6.99, emoji: "🍟" },
+      { id: 17, name: "Fried Chicken", price: 13.99, emoji: "🍗" },
+      { id: 18, name: "BBQ Chicken", price: 14.99, emoji: "🍗" },
+      { id: 19, name: "Grilled Steak", price: 25.99, emoji: "🥩" },
+      { id: 20, name: "T-Bone Steak", price: 28.99, emoji: "🥩" },
+      { id: 21, name: "Bacon Strips", price: 7.99, emoji: "🥓" },
+      { id: 22, name: "Breakfast Burrito", price: 11.99, emoji: "🌯" },
+      { id: 23, name: "Chicken Burrito", price: 12.99, emoji: "🌯" },
+      { id: 24, name: "Ramen Bowl", price: 13.99, emoji: "🍜" },
+      { id: 25, name: "Spicy Ramen", price: 14.99, emoji: "🍜" },
+      { id: 26, name: "Fried Rice", price: 10.99, emoji: "🍚" },
+      { id: 27, name: "Curry Rice", price: 12.99, emoji: "🍚" },
+      { id: 28, name: "Chicken Curry", price: 13.99, emoji: "🍛" },
+      { id: 29, name: "Seafood Paella", price: 19.99, emoji: "🥘" },
+      { id: 30, name: "Chicken Paella", price: 17.99, emoji: "🥘" },
+      { id: 31, name: "Croissant", price: 5.99, emoji: "🥐" },
+      { id: 32, name: "Bagel", price: 4.99, emoji: "🥯" },
+      { id: 33, name: "Baguette", price: 6.99, emoji: "🥖" },
+      { id: 34, name: "Pretzel", price: 5.99, emoji: "🥨" },
+      { id: 35, name: "Pancakes", price: 9.99, emoji: "🥞" },
+      { id: 36, name: "Waffle", price: 10.99, emoji: "🧇" },
+      { id: 37, name: "Cheesecake", price: 7.99, emoji: "🍰" },
+      { id: 38, name: "Chocolate Cake", price: 8.99, emoji: "🎂" },
+      { id: 39, name: "Cupcake", price: 4.99, emoji: "🧁" },
+      { id: 40, name: "Ice Cream", price: 6.99, emoji: "🍨" },
+      { id: 41, name: "Donut", price: 3.99, emoji: "🍩" },
+      { id: 42, name: "Cookie", price: 2.99, emoji: "🍪" },
+      { id: 43, name: "Chocolate Bar", price: 3.99, emoji: "🍫" },
+      { id: 44, name: "Popcorn", price: 5.99, emoji: "🍿" },
+      { id: 45, name: "Nachos", price: 8.99, emoji: "🧀" },
+      { id: 46, name: "Sandwich", price: 9.99, emoji: "🥪" },
+      { id: 47, name: "Wrap", price: 10.99, emoji: "🌯" },
+      { id: 48, name: "Soup Bowl", price: 7.99, emoji: "🍲" },
+      { id: 49, name: "Dumplings", price: 11.99, emoji: "🥟" },
+      { id: 50, name: "Spring Rolls", price: 8.99, emoji: "🥙" }
+    ];
+
+    let cart = [];
+    let currentPage = 'home';
+    let lastScroll = 0;
+
+    // Sticky header show/hide on scroll
+    window.addEventListener('scroll', () => {
+      const navbar = document.getElementById('navbar');
+      const currentScroll = window.pageYOffset;
+      
+      if (currentScroll <= 0) {
+        navbar.classList.remove('navbar-hidden');
+        navbar.classList.add('navbar-visible');
+        return;
+      }
+      
+      if (currentScroll > lastScroll && currentScroll > 100) {
+        // Scrolling down
+        navbar.classList.add('navbar-hidden');
+        navbar.classList.remove('navbar-visible');
+      } else {
+        // Scrolling up
+        navbar.classList.remove('navbar-hidden');
+        navbar.classList.add('navbar-visible');
+      }
+      
+      lastScroll = currentScroll;
+    });
+
+    // Celebration Sound Generator using Web Audio API
+    function playCelebrationSound() {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Play a cheerful ascending melody
+      const notes = [
+        { freq: 523.25, time: 0 },    // C5
+        { freq: 659.25, time: 0.15 },  // E5
+        { freq: 783.99, time: 0.3 },   // G5
+        { freq: 1046.50, time: 0.45 }  // C6
+      ];
+      
+      notes.forEach(note => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = note.freq;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + note.time);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.time + 0.15);
+        
+        oscillator.start(audioContext.currentTime + note.time);
+        oscillator.stop(audioContext.currentTime + note.time + 0.15);
+      });
+      
+      // Add a celebration "ding" at the end
+      setTimeout(() => {
+        const ding = audioContext.createOscillator();
+        const dingGain = audioContext.createGain();
+        
+        ding.connect(dingGain);
+        dingGain.connect(audioContext.destination);
+        
+        ding.frequency.value = 1568; // High pitched ding
+        ding.type = 'sine';
+        
+        dingGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+        dingGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        ding.start(audioContext.currentTime);
+        ding.stop(audioContext.currentTime + 0.3);
+      }, 600);
+    }
+
+    // Confetti Animation
+    function createConfetti() {
+      const container = document.getElementById('confetti-container');
+      const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#fd79a8', '#fdcb6e', '#e17055'];
+      const confettiCount = 150;
+      
+      for (let i = 0; i < confettiCount; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + '%';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.width = (Math.random() * 10 + 5) + 'px';
+          confetti.style.height = (Math.random() * 10 + 5) + 'px';
+          confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+          confetti.style.animationDelay = '0s';
+          
+          container.appendChild(confetti);
+          
+          setTimeout(() => {
+            confetti.remove();
+          }, 5000);
+        }, i * 10);
+      }
+    }
+
+    let favorites = [];
+
+    // Generate SVG food illustration based on emoji
+    function getFoodSVG(emoji) {
+      const colors = {
+        '🍔': '#ff6b35',
+        '🍕': '#e74c3c',
+        '🥗': '#27ae60',
+        '🍣': '#e67e22',
+        '🍝': '#f39c12',
+        '🌮': '#f1c40f',
+        '🌭': '#e67e22',
+        '🍟': '#f39c12',
+        '🍗': '#d35400',
+        '🥩': '#c0392b',
+        '🥓': '#e74c3c',
+        '🌯': '#d68910',
+        '🍜': '#e67e22',
+        '🍚': '#ecf0f1',
+        '🍛': '#e67e22',
+        '🥘': '#d35400',
+        '🥐': '#f39c12',
+        '🥯': '#d68910',
+        '🥖': '#d68910',
+        '🥨': '#a0522d',
+        '🥞': '#f1c40f',
+        '🧇': '#e67e22',
+        '🍰': '#ff69b4',
+        '🎂': '#ff1493',
+        '🧁': '#ff6eb4',
+        '🍨': '#87ceeb',
+        '🍩': '#ff69b4',
+        '🍪': '#d2691e',
+        '🍫': '#8b4513',
+        '🍿': '#fff8dc',
+        '🧀': '#ffd700',
+        '🥪': '#d2b48c',
+        '🍲': '#ff6347',
+        '🥟': '#ffe4b5',
+        '🥙': '#d2b48c'
+      };
+      
+      const color = colors[emoji] || '#ff6b35';
+      
+      return `
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto;">
+          <defs>
+            <linearGradient id="grad-${emoji.codePointAt(0)}" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+              <stop offset="100%" style="stop-color:${color};stop-opacity:0.7" />
+            </linearGradient>
+            <filter id="shadow-${emoji.codePointAt(0)}">
+              <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.2"/>
+            </filter>
+          </defs>
+          
+          <!-- Background Circle -->
+          <circle cx="100" cy="100" r="85" fill="url(#grad-${emoji.codePointAt(0)})" opacity="0.15"/>
+          
+          <!-- Emoji -->
+          <text x="100" y="120" font-size="100" text-anchor="middle" filter="url(#shadow-${emoji.codePointAt(0)})">${emoji}</text>
+          
+          <!-- Decorative dots -->
+          <circle cx="50" cy="50" r="4" fill="${color}" opacity="0.3"/>
+          <circle cx="150" cy="60" r="3" fill="${color}" opacity="0.3"/>
+          <circle cx="140" cy="140" r="5" fill="${color}" opacity="0.3"/>
+          <circle cx="60" cy="150" r="4" fill="${color}" opacity="0.3"/>
+        </svg>
+      `;
+    }
+
+    function renderMenuItems() {
+      const menuGrid = document.getElementById('menu-grid');
+      const baseFont = window.elementSdk?.config?.font_size || defaultConfig.font_size;
+      const customFont = window.elementSdk?.config?.font_family || defaultConfig.font_family;
+      const primaryColor = window.elementSdk?.config?.primary_action_color || defaultConfig.primary_action_color;
+      const textColor = window.elementSdk?.config?.text_color || defaultConfig.text_color;
+      const cardColor = window.elementSdk?.config?.card_color || defaultConfig.card_color;
+      
+      // Simulate loading delay for skeleton effect
+      setTimeout(() => {
+        menuGrid.innerHTML = menuItems.map(item => `
+          <div class="food-card rounded-lg shadow-md overflow-hidden fade-in" style="background-color: ${cardColor};" data-item-id="${item.id}">
+            <div class="p-6">
+              <span class="favorite-btn ${favorites.includes(item.id) ? 'liked' : ''}" onclick="toggleFavorite(event, ${item.id})">${favorites.includes(item.id) ? '❤️' : '🤍'}</span>
+              <div class="emoji-container mb-4" style="width: 100%; height: 140px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                <div style="font-size: 80px; text-align: center; line-height: 1;">${item.emoji}</div>
+              </div>
+              <h3 class="font-bold mb-2 text-center" style="font-family: '${customFont}', system-ui, -apple-system, sans-serif; font-size: ${baseFont * 1.125}px; color: ${textColor};">${item.name}</h3>
+              
+              <!-- Star Rating -->
+              <div class="star-rating justify-center mb-2" data-item-id="${item.id}">
+                <span class="star" onclick="rateItem(event, ${item.id}, 1)">⭐</span>
+                <span class="star" onclick="rateItem(event, ${item.id}, 2)">⭐</span>
+                <span class="star" onclick="rateItem(event, ${item.id}, 3)">⭐</span>
+                <span class="star" onclick="rateItem(event, ${item.id}, 4)">⭐</span>
+                <span class="star" onclick="rateItem(event, ${item.id}, 5)">⭐</span>
+              </div>
+              
+              <div class="flex justify-between items-center mt-4">
+                <span class="font-bold" style="font-family: '${customFont}', system-ui, -apple-system, sans-serif; font-size: ${baseFont * 1.125}px; color: ${textColor};">$${item.price.toFixed(2)}</span>
+                <button onclick="addToCart(${item.id}, event)" class="btn-hover py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition-opacity" style="background-color: ${primaryColor}; color: white; font-family: '${customFont}', system-ui, -apple-system, sans-serif; font-size: ${baseFont * 0.875}px;">
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }, 500);
+    }
+
+    function toggleFavorite(event, itemId) {
+      event.stopPropagation();
+      const btn = event.target;
+      
+      if (favorites.includes(itemId)) {
+        favorites = favorites.filter(id => id !== itemId);
+        btn.textContent = '🤍';
+        btn.classList.remove('liked');
+      } else {
+        favorites.push(itemId);
+        btn.textContent = '❤️';
+        btn.classList.add('liked');
+        createHeartBurst(btn);
+      }
+    }
+    
+    // Heart Burst Particle Effect
+    function createHeartBurst(element) {
+      const rect = element.getBoundingClientRect();
+      const colors = ['❤️', '💕', '💖', '💗', '💓'];
+      
+      for (let i = 0; i < 8; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'heart-particle';
+        particle.textContent = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.left = rect.left + rect.width / 2 + 'px';
+        particle.style.top = rect.top + rect.height / 2 + 'px';
+        
+        const angle = (Math.PI * 2 * i) / 8;
+        const distance = 50 + Math.random() * 30;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance;
+        
+        particle.style.setProperty('--tx', tx + 'px');
+        particle.style.setProperty('--ty', ty + 'px');
+        
+        document.body.appendChild(particle);
+        setTimeout(() => particle.remove(), 800);
+      }
+    }
+    
+    // Star Rating Function
+    let itemRatings = {};
+    
+    function rateItem(event, itemId, rating) {
+      event.stopPropagation();
+      itemRatings[itemId] = rating;
+      
+      const starContainer = event.target.closest('.star-rating');
+      const stars = starContainer.querySelectorAll('.star');
+      
+      stars.forEach((star, index) => {
+        star.classList.remove('filled');
+        if (index < rating) {
+          setTimeout(() => {
+            star.classList.add('filled');
+          }, index * 100);
+        }
+      });
+      
+      // Highlight the card
+      const card = document.querySelector(`[data-item-id="${itemId}"]`);
+      if (card) {
+        card.classList.add('selected');
+        setTimeout(() => card.classList.remove('selected'), 2000);
+      }
+      
+      showNotification(`Rated ${rating} stars! ⭐`);
+    }
+
+    function addToCart(itemId, event) {
+      const item = menuItems.find(i => i.id === itemId);
+      const existingItem = cart.find(i => i.id === itemId);
+      
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.push({ ...item, quantity: 1 });
+      }
+      
+      // Create flying emoji animation
+      if (event) {
+        const button = event.target;
+        const buttonRect = button.getBoundingClientRect();
+        const cartBtn = document.getElementById('cart-btn');
+        const cartRect = cartBtn.getBoundingClientRect();
+        
+        const flyingEmoji = document.createElement('div');
+        flyingEmoji.className = 'flying-emoji';
+        flyingEmoji.textContent = item.emoji;
+        flyingEmoji.style.left = buttonRect.left + 'px';
+        flyingEmoji.style.top = buttonRect.top + 'px';
+        
+        const deltaX = cartRect.left - buttonRect.left;
+        const deltaY = cartRect.top - buttonRect.top;
+        
+        flyingEmoji.style.setProperty('--tx', deltaX + 'px');
+        flyingEmoji.style.setProperty('--ty', deltaY + 'px');
+        
+        document.body.appendChild(flyingEmoji);
+        
+        setTimeout(() => flyingEmoji.remove(), 800);
+      }
+      
+      updateCartCount();
+      animateCartBadge();
+      showNotification('Item added! Taking you to checkout... 🛒');
+      
+      // Go directly to checkout page after adding item
+      setTimeout(() => {
+        proceedToCheckout();
+      }, 800);
+    }
+
+    function animateCartBadge() {
+      const badge = document.getElementById('cart-count');
+      badge.classList.add('badge-bump');
+      setTimeout(() => badge.classList.remove('badge-bump'), 300);
+    }
+
+    function updateCartCount() {
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+      document.getElementById('cart-count').textContent = totalItems;
+    }
+
+    function viewCart() {
+      if (cart.length === 0) {
+        showNotification('Your cart is empty! Add items from the menu.');
+        showPage('home');
+      } else {
+        proceedToCheckout();
+      }
+    }
+
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(`${page}-page`).classList.add('active');
+      currentPage = page;
+      window.scrollTo(0, 0);
+    }
+
+    function proceedToCheckout() {
+      if (cart.length === 0) {
+        showNotification('Your cart is empty!');
+        return;
+      }
+      showPage('checkout');
+      renderCheckoutItems();
+    }
+
+    function renderCheckoutItems() {
+      const checkoutItemsContainer = document.getElementById('checkout-items');
+      const baseFont = window.elementSdk?.config?.font_size || defaultConfig.font_size;
+      const customFont = window.elementSdk?.config?.font_family || defaultConfig.font_family;
+      const textColor = window.elementSdk?.config?.text_color || defaultConfig.text_color;
+      const primaryColor = window.elementSdk?.config?.primary_action_color || defaultConfig.primary_action_color;
+      
+      checkoutItemsContainer.innerHTML = cart.map(item => `
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl">${item.emoji}</span>
+            <div>
+              <p class="font-semibold" style="font-family: '${customFont}', system-ui, -apple-system, sans-serif; font-size: ${baseFont}px; color: ${textColor};">${item.name}</p>
+              <div class="flex items-center space-x-2 mt-1">
+                <button onclick="decreaseQuantity(${item.id})" class="w-6 h-6 rounded-full flex items-center justify-center hover:opacity-70 text-sm" style="background-color: #e9ecef; color: ${textColor};">-</button>
+                <span class="opacity-75" style="font-family: '${customFont}', system-ui, -apple-system, sans-serif; font-size: ${baseFont * 0.875}px; color: ${textColor};">Qty: ${item.quantity}</span>
+                <button onclick="increaseQuantity(${item.id})" class="w-6 h-6 rounded-full flex items-center justify-center hover:opacity-70 text-sm" style="background-color: #e9ecef; color: ${textColor};">+</button>
+              </div>
+            </div>
+          </div>
+          <span class="font-bold" style="font-family: '${customFont}', system-ui, -apple-system, sans-serif; font-size: ${baseFont}px; color: ${textColor};">$${(item.price * item.quantity).toFixed(2)}</span>
+        </div>
+      `).join('');
+      
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const total = subtotal + 5.00;
+      
+      document.getElementById('checkout-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById('checkout-total').textContent = `$${total.toFixed(2)}`;
+    }
+
+    function increaseQuantity(itemId) {
+      const item = cart.find(i => i.id === itemId);
+      if (item) {
+        item.quantity += 1;
+        updateCartCount();
+        renderCheckoutItems();
+      }
+    }
+
+    function decreaseQuantity(itemId) {
+      const item = cart.find(i => i.id === itemId);
+      if (item) {
+        item.quantity -= 1;
+        if (item.quantity === 0) {
+          cart = cart.filter(i => i.id !== itemId);
+          if (cart.length === 0) {
+            showNotification('Cart is now empty. Returning to menu...');
+            setTimeout(() => showPage('home'), 1000);
+          }
+        }
+        updateCartCount();
+        renderCheckoutItems();
+      }
+    }
+
+    function formatCardNumber(input) {
+      let value = input.value.replace(/\s/g, '');
+      value = value.replace(/[^0-9]/g, '');
+      let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+      input.value = formattedValue;
+    }
+
+    function formatExpiryDate(input) {
+      let value = input.value.replace(/\//g, '');
+      value = value.replace(/[^0-9]/g, '');
+      if (value.length >= 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+      }
+      input.value = value;
+    }
+
+    function handlePayment(event) {
+      event.preventDefault();
+      
+      const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+      
+      if (cardNumber.length !== 16) {
+        showNotification('❌ Card number must be exactly 16 digits!');
+        return;
+      }
+      
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const total = subtotal + 5.00;
+      
+      document.getElementById('thankyou-order-number').textContent = '#' + Math.floor(100000 + Math.random() * 900000);
+      document.getElementById('thankyou-total').textContent = `$${total.toFixed(2)}`;
+      
+      showPage('thankyou');
+      
+      // Trigger celebration effects
+      setTimeout(() => {
+        playCelebrationSound();
+        createConfetti();
+        animateProgressTimeline();
+      }, 300);
+    }
+
+    function animateProgressTimeline() {
+      const steps = document.querySelectorAll('.progress-step');
+      
+      // Step 1: Already completed (Accepted)
+      
+      // Step 2: Animate to "Preparing" after 2 seconds
+      setTimeout(() => {
+        steps[1].classList.add('completed');
+        steps[1].classList.remove('active');
+        if (steps[2]) steps[2].classList.add('active');
+      }, 2000);
+      
+      // Step 3: Animate to "On the Way" after 5 seconds
+      setTimeout(() => {
+        steps[2].classList.add('completed');
+        steps[2].classList.remove('active');
+        if (steps[3]) steps[3].classList.add('active');
+      }, 5000);
+      
+      // Step 4: Animate to "Delivered" after 8 seconds
+      setTimeout(() => {
+        steps[3].classList.add('completed');
+        steps[3].classList.remove('active');
+      }, 8000);
+      
+      // Start ETA Countdown
+      startETACountdown();
+    }
+    
+    // ETA Countdown Animation
+    function startETACountdown() {
+      let time = 25;
+      const etaElement = document.getElementById('eta-countdown');
+      
+      const countdown = setInterval(() => {
+        time--;
+        if (etaElement) {
+          etaElement.textContent = time;
+        }
+        if (time <= 0) {
+          clearInterval(countdown);
+          if (etaElement) {
+            etaElement.textContent = 'Arriving!';
+          }
+        }
+      }, 1000);
+    }
+    
+    // Scroll Reveal Animation
+    function initScrollReveal() {
+      const reveals = document.querySelectorAll('.scroll-reveal');
+      
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      reveals.forEach(reveal => observer.observe(reveal));
+    }
+    
+    // Notification Bell Shake
+    function shakeNotificationBell() {
+      const bell = document.getElementById('notification-bell');
+      if (bell) {
+        bell.classList.add('shake');
+        setTimeout(() => bell.classList.remove('shake'), 500);
+      }
+    }
+    
+    // Trigger bell shake every 15 seconds
+    setInterval(shakeNotificationBell, 15000);
+
+    function resetOrder() {
+      cart = [];
+      updateCartCount();
+      document.getElementById('payment-form').reset();
+      document.getElementById('confetti-container').innerHTML = '';
+    }
+
+    function showNotification(message) {
+      const notif = document.createElement('div');
+      notif.className = 'toast-notification fixed top-4 right-4 rounded-lg shadow-xl px-6 py-4 z-50';
+      const primaryColor = window.elementSdk?.config?.primary_action_color || defaultConfig.primary_action_color;
+      notif.style.backgroundColor = primaryColor;
+      notif.style.color = 'white';
+      notif.textContent = message;
+      document.body.appendChild(notif);
+      
+      setTimeout(() => {
+        notif.classList.add('hiding');
+        setTimeout(() => notif.remove(), 300);
+      }, 2700);
+    }
+
+    async function onConfigChange(config) {
+      const bgColor = config.background_color || defaultConfig.background_color;
+      const navColor = config.navbar_color || defaultConfig.navbar_color;
+      const heroColor = config.hero_color || defaultConfig.hero_color;
+      const cardColor = config.card_color || defaultConfig.card_color;
+      const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const customFont = config.font_family || defaultConfig.font_family;
+      const baseFont = config.font_size || defaultConfig.font_size;
+
+      document.getElementById('app').style.backgroundColor = bgColor;
+      document.getElementById('navbar').style.backgroundColor = navColor;
+      document.getElementById('hero').style.backgroundColor = heroColor;
+      document.getElementById('menu').style.backgroundColor = bgColor;
+      
+      document.getElementById('payment-form-card').style.backgroundColor = cardColor;
+      document.getElementById('order-summary-card').style.backgroundColor = cardColor;
+      document.getElementById('thankyou-card').style.backgroundColor = cardColor;
+      document.getElementById('success-circle').style.backgroundColor = primaryColor;
+
+      const siteName = document.getElementById('site-name');
+      siteName.textContent = config.site_name || defaultConfig.site_name;
+      siteName.style.color = textColor;
+      siteName.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      siteName.style.fontSize = `${baseFont * 1.25}px`;
+
+      document.getElementById('cart-count').style.backgroundColor = primaryColor;
+      document.getElementById('cart-count').style.color = 'white';
+
+      const heroTitle = document.getElementById('hero-title');
+      heroTitle.textContent = config.hero_title || defaultConfig.hero_title;
+      heroTitle.style.color = 'white';
+      heroTitle.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      heroTitle.style.fontSize = `${baseFont * 2.5}px`;
+
+      const heroSubtitle = document.getElementById('hero-subtitle');
+      heroSubtitle.textContent = config.hero_subtitle || defaultConfig.hero_subtitle;
+      heroSubtitle.style.color = 'white';
+      heroSubtitle.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      heroSubtitle.style.fontSize = `${baseFont * 1.125}px`;
+
+      const browseBtn = document.getElementById('browse-btn');
+      browseBtn.style.backgroundColor = 'white';
+      browseBtn.style.color = heroColor;
+      browseBtn.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      browseBtn.style.fontSize = `${baseFont}px`;
+
+      const menuTitle = document.getElementById('menu-title');
+      menuTitle.textContent = config.menu_title || defaultConfig.menu_title;
+      menuTitle.style.color = textColor;
+      menuTitle.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      menuTitle.style.fontSize = `${baseFont * 2}px`;
+
+      const checkoutTitle = document.getElementById('checkout-title');
+      checkoutTitle.textContent = config.checkout_title || defaultConfig.checkout_title;
+      checkoutTitle.style.color = textColor;
+      checkoutTitle.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      checkoutTitle.style.fontSize = `${baseFont * 2}px`;
+
+      const placeOrderBtn = document.getElementById('place-order-btn');
+      placeOrderBtn.textContent = config.payment_button || defaultConfig.payment_button;
+      placeOrderBtn.style.backgroundColor = primaryColor;
+      placeOrderBtn.style.color = 'white';
+      placeOrderBtn.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      placeOrderBtn.style.fontSize = `${baseFont}px`;
+
+      const thankyouTitle = document.getElementById('thankyou-title');
+      thankyouTitle.textContent = config.thankyou_title || defaultConfig.thankyou_title;
+      thankyouTitle.style.color = textColor;
+      thankyouTitle.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      thankyouTitle.style.fontSize = `${baseFont * 2.5}px`;
+
+      const thankyouMessage = document.getElementById('thankyou-message');
+      thankyouMessage.textContent = config.thankyou_message || defaultConfig.thankyou_message;
+      thankyouMessage.style.color = textColor;
+      thankyouMessage.style.fontFamily = `'${customFont}', system-ui, -apple-system, sans-serif`;
+      thankyouMessage.style.fontSize = `${baseFont * 1.125}px`;
+
+      renderMenuItems();
+      if (currentPage === 'checkout') {
+        renderCheckoutItems();
+      }
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.hero_color || defaultConfig.hero_color,
+              set: (value) => {
+                window.elementSdk.config.hero_color = value;
+                window.elementSdk.setConfig({ hero_color: value });
+              }
+            },
+            {
+              get: () => config.card_color || defaultConfig.card_color,
+              set: (value) => {
+                window.elementSdk.config.card_color = value;
+                window.elementSdk.setConfig({ card_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                window.elementSdk.config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                window.elementSdk.config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            },
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                window.elementSdk.config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: {
+            get: () => config.font_family || defaultConfig.font_family,
+            set: (value) => {
+              window.elementSdk.config.font_family = value;
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          },
+          fontSizeable: {
+            get: () => config.font_size || defaultConfig.font_size,
+            set: (value) => {
+              window.elementSdk.config.font_size = value;
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['site_name', config.site_name || defaultConfig.site_name],
+          ['hero_title', config.hero_title || defaultConfig.hero_title],
+          ['hero_subtitle', config.hero_subtitle || defaultConfig.hero_subtitle],
+          ['menu_title', config.menu_title || defaultConfig.menu_title],
+          ['checkout_title', config.checkout_title || defaultConfig.checkout_title],
+          ['payment_button', config.payment_button || defaultConfig.payment_button],
+          ['thankyou_title', config.thankyou_title || defaultConfig.thankyou_title],
+          ['thankyou_message', config.thankyou_message || defaultConfig.thankyou_message]
+        ])
+      });
+    }
+
+    onConfigChange(window.elementSdk?.config || defaultConfig);
+    
+    // Initialize scroll reveal animations
+    initScrollReveal();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ac642e7154d0803',t:'MTc2NTQ2OTUyMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
